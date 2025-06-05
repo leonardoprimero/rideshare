@@ -1,0 +1,396 @@
+.shared-rides-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.shared-header {
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 1rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  color: #4361ee;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.5rem;
+  margin-right: 1rem;
+}
+
+.header-content h1 {
+  color: #212529;
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.shared-main {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #4361ee;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.empty-state h2 {
+  color: #212529;
+  margin: 0 0 1rem;
+  font-size: 1.5rem;
+}
+
+.empty-state p {
+  color: #6c757d;
+  max-width: 400px;
+}
+
+.rides-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.ride-card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+}
+
+.ride-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.ride-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.date-time {
+  display: flex;
+  flex-direction: column;
+}
+
+.ride-date {
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.ride-time {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #212529;
+}
+
+.ride-price {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #4361ee;
+}
+
+.ride-route {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.route-point {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.point-marker {
+  font-size: 1rem;
+}
+
+.point-marker.origin {
+  color: #4361ee;
+}
+
+.point-marker.destination {
+  color: #f72585;
+}
+
+.point-address {
+  font-size: 0.9rem;
+  color: #212529;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.route-divider {
+  width: 1px;
+  height: 20px;
+  background-color: #dee2e6;
+  margin-left: 0.5rem;
+}
+
+.driver-info {
+  display: flex;
+  align-items: center;
+}
+
+.driver-avatar {
+  width: 40px;
+  height: 40px;
+  background-color: #4361ee;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  margin-right: 1rem;
+}
+
+.driver-details {
+  flex: 1;
+}
+
+.driver-name {
+  font-weight: 500;
+  color: #212529;
+}
+
+.driver-rating {
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.seats-info {
+  font-size: 0.9rem;
+  color: #212529;
+  font-weight: 500;
+}
+
+.recurring-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background-color: #4cc9f0;
+  color: white;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+/* Ride details styles */
+.ride-details-container {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.details-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #212529;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6c757d;
+  cursor: pointer;
+}
+
+.details-content {
+  padding: 1.5rem;
+}
+
+.map-placeholder {
+  height: 300px;
+  background-color: #e9ecef;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.map-info {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 10px;
+  border-radius: 5px;
+  font-size: 0.9rem;
+  z-index: 10;
+}
+
+.map-info p {
+  margin: 5px 0;
+}
+
+.origin-marker, .destination-marker {
+  position: absolute;
+  font-size: 1.5rem;
+}
+
+.route-line {
+  position: absolute;
+  top: 30%;
+  left: 30%;
+  width: 40%;
+  height: 40%;
+  border-top: 3px dashed #4361ee;
+  transform: rotate(45deg);
+  transform-origin: 0 0;
+}
+
+.details-section {
+  margin-bottom: 2rem;
+}
+
+.details-section h3 {
+  font-size: 1.2rem;
+  color: #212529;
+  margin: 0 0 1rem;
+}
+
+.driver-profile {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.driver-avatar-large {
+  width: 60px;
+  height: 60px;
+  background-color: #4361ee;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  font-size: 1.5rem;
+}
+
+.driver-name-large {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #212529;
+  margin-bottom: 0.25rem;
+}
+
+.driver-rating-large {
+  font-size: 1rem;
+  color: #6c757d;
+}
+
+.detail-item {
+  display: flex;
+  margin-bottom: 0.5rem;
+}
+
+.detail-label {
+  font-weight: 500;
+  color: #212529;
+  width: 150px;
+}
+
+.detail-value {
+  color: #6c757d;
+}
+
+.recurring-info {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #dee2e6;
+}
+
+.join-button {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #4361ee;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 1rem;
+}
+
+.join-button:hover {
+  background-color: #3f37c9;
+}
+
+@media (max-width: 768px) {
+  .rides-list {
+    grid-template-columns: 1fr;
+  }
+}
