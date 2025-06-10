@@ -1,7 +1,9 @@
+import React, { useEffect } from 'react'; // Added useEffect
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store';
 import { ROUTES } from './constants';
+import { useAuth } from './hooks/useAuth'; // Added
 
 // Importación de páginas
 import HomePage from './pages/HomePage';
@@ -20,6 +22,12 @@ import StatsPage from './pages/StatsPage';
 import './App.css';
 
 function App() {
+  const { initializeAuth } = useAuth(); // Added
+
+  useEffect(() => { // Added
+    initializeAuth();
+  }, [initializeAuth]);
+
   return (
     <Provider store={store}>
       <Router>

@@ -1,0 +1,84 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // Changed from postgresql to sqlite
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String   // Password hash
+  role      Role     @default(PASSENGER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  routesAsDriver Route[]   @relation("DriverRoutes")
+  routesAsPassenger Route[] @relation("PassengerRoutes") // For rides a passenger has booked
+  payments     Payment[]
+}
+
+enum Role {
+  PASSENGER
+  DRIVER
+  ADMIN // Optional: for administrative purposes
+}
+
+model Route {
+  id            String   @id @default(cuid())
+  originLat     Float
+  originLng     Float
+  destinationLat Float
+  destinationLng Float
+  departureTime DateTime
+  estimatedArrivalTime DateTime?
+  status        RouteStatus @default(PENDING)
+  price         Float?      // Price for the ride
+
+  driverId      String
+  driver        User     @relation("DriverRoutes", fields: [driverId], references: [id])
+
+  // Many-to-many relationship for passengers on a route
+  passengers    User[]   @relation("PassengerRoutes")
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  payments      Payment[]
+}
+
+enum RouteStatus {
+  PENDING     // Route created by driver, not yet active
+  ACTIVE      // Route started by driver
+  COMPLETED   // Route finished
+  CANCELLED   // Route cancelled
+  FULL        // Route has no more available seats (implicit, based on passenger count vs capacity if added)
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  amount        Float
+  status        PaymentStatus @default(PENDING)
+  transactionId String?       @unique // For external payment gateway reference
+
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+
+  routeId       String
+  route         Route         @relation(fields: [routeId], references: [id])
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+  REFUNDED
+}

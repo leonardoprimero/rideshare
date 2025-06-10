@@ -1,8 +1,14 @@
-// Hook personalizado para autenticación
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
-import { loginUser, registerUser, logout, clearError, updateUserProfile } from '../store/slices/authSlice';
-import { RegisterData } from '../services/authService';
+import {
+  loginUser,
+  registerUser as registerUserThunk,
+  logoutUser,
+  clearError,
+  updateUserProfile,
+  checkAuth,
+  UIRegisterData
+} from '../store/slices/authSlice';
 import { User } from '../types';
 
 export const useAuth = () => {
@@ -13,41 +19,45 @@ export const useAuth = () => {
     return dispatch(loginUser({ email, password }));
   };
 
-  const register = async (userData: RegisterData) => {
-    return dispatch(registerUser(userData));
+  const register = async (userData: UIRegisterData) => {
+    return dispatch(registerUserThunk(userData));
   };
 
   const signOut = () => {
-    dispatch(logout());
+    dispatch(logoutUser());
   };
 
   const clearAuthError = () => {
     dispatch(clearError());
   };
 
-  const updateProfile = async (updates: Partial<User>) => {
-    if (!auth.user) return;
+  const updateProfile = async (updates: Partial<{name: string}>) => {
     return dispatch(updateUserProfile(updates));
   };
 
+  const initializeAuth = () => {
+    dispatch(checkAuth());
+  };
+
   return {
-    // Estado
+    // State
     user: auth.user,
     token: auth.token,
     isAuthenticated: auth.isAuthenticated,
     isLoading: auth.isLoading,
     error: auth.error,
     
-    // Acciones
+    // Actions
     login,
     register,
     logout: signOut,
     clearError: clearAuthError,
     updateProfile,
+    initializeAuth,
     
     // Helpers
     isDriver: auth.user?.isDriver || false,
-    isPassenger: !auth.user?.isDriver,
+    isPassenger: auth.user ? !auth.user.isDriver : false,
   };
 };
 
