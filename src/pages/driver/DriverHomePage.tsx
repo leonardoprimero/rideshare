@@ -22,6 +22,8 @@ const DriverHomePage: React.FC = () => {
   // Estados locales
   const [isAvailable, setIsAvailable] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [activeRide, setActiveRide] = useState<any | null>(null);
+  const [showActiveRideRoute, setShowActiveRideRoute] = useState(false);
   const [todayStats, setTodayStats] = useState({
     trips: 0,
     earnings: 0,
@@ -58,22 +60,37 @@ const DriverHomePage: React.FC = () => {
   useEffect(() => {
     if (userLocation) {
       clearMarkers();
-      
-      // Agregar marcador del conductor
-      addMarker({
+      const driverMarker = {
         id: 'driver-current',
         location: userLocation,
-        type: 'driver',
+        type: 'driver' as const,
         label: `${user?.name || 'Conductor'} - ${isAvailable ? 'Disponible' : 'No disponible'}`,
         data: { available: isAvailable }
-      });
+      };
 
-      // Si está disponible, mostrar clientes potenciales
-      if (isAvailable) {
-        addNearbyDrivers(userLocation, 5); // Simular 5 solicitudes potenciales
+      if (showActiveRideRoute && activeRide) {
+        addMarker(driverMarker);
+        addMarker({
+          id: 'pickup-location',
+          location: { latitude: activeRide.pickup.lat, longitude: activeRide.pickup.lng },
+          type: 'pickup' as const,
+          label: `Recoger: ${activeRide.passenger.name}`
+        });
+        addMarker({
+          id: 'destination-location',
+          location: { latitude: activeRide.destination.lat, longitude: activeRide.destination.lng },
+          type: 'destination' as const,
+          label: `Destino: ${activeRide.destination.name}`
+        });
+      } else {
+        addMarker(driverMarker);
+        if (isAvailable) {
+          // Simular solicitudes potenciales cercanas (si no hay viaje activo)
+          // addNearbyDrivers(userLocation, 5); // Comentado para no sobrecargar el mapa con el viaje activo
+        }
       }
     }
-  }, [userLocation, isAvailable]);
+  }, [userLocation, isAvailable, activeRide, showActiveRideRoute]);
 
   // Simular solicitudes de viaje cuando está disponible
   useEffect(() => {
@@ -159,20 +176,38 @@ const DriverHomePage: React.FC = () => {
     
     setWeeklyProgress(prev => prev + request.estimatedPrice);
     
-    // Remover solicitud
-    setPendingRequests(prev => prev.filter(req => req.id !== request.id));
+    setActiveRide(request);
+    setShowActiveRideRoute(true);
+    setPendingRequests([]); // Clear all pending requests
     
-    // Navegar a pantalla de viaje activo
-    navigate('/driver/active-ride', {
-      state: {
-        request,
-        acceptedAt: new Date()
-      }
-    });
+    // No navegar, manejar en la misma página
+    // navigate('/driver/active-ride', {
+    //   state: {
+    //     request,
+    //     acceptedAt: new Date()
+    //   }
+    // });
   };
 
   const handleRejectRequest = (requestId: string) => {
     setPendingRequests(prev => prev.filter(req => req.id !== requestId));
+  };
+
+  const handleCompleteRide = () => {
+    // Aquí podrías agregar lógica para confirmar la finalización,
+    // enviar datos al backend, etc.
+    setTodayStats(prev => ({
+      ...prev,
+      // Podrías agregar una estadística de "viajes completados" si es diferente a "trips"
+    }));
+
+    setActiveRide(null);
+    setShowActiveRideRoute(false);
+
+    // Opcional: volver a buscar solicitudes si el conductor sigue disponible
+    if (isAvailable) {
+      // generateRandomRequest(); // Podrías llamar esto o dejar que el useEffect lo haga
+    }
   };
 
   const handleLogout = () => {
@@ -227,19 +262,28 @@ const DriverHomePage: React.FC = () => {
       {/* Mapa interactivo */}
       <div className="map-section">
         <MapComponent
-          center={center}
-          zoom={zoom}
+          center={showActiveRideRoute && activeRide ? { latitude: activeRide.pickup.lat, longitude: activeRide.pickup.lng } : center}
+          zoom={showActiveRideRoute && activeRide ? 14 : zoom} // Zoom in on active ride
           markers={markers}
           isLoading={mapLoading}
           error={mapError}
           className="driver-map"
+          showRoute={showActiveRideRoute && !!activeRide && !!userLocation}
+          origin={userLocation ? { latitude: userLocation.latitude, longitude: userLocation.longitude } : undefined}
+          destination={activeRide ? { latitude: activeRide.destination.lat, longitude: activeRide.destination.lng } : undefined}
+          // Para la ruta del conductor al punto de recogida, y luego del punto de recogida al destino.
+          // Esto podría requerir dos MapComponent o una lógica más avanzada en MapComponent para mostrar múltiples segmentos de ruta.
+          // Por ahora, mostraremos la ruta desde la ubicación actual del conductor al destino final del pasajero.
+          // Si se quisiera mostrar primero ruta a recogida:
+          // destination={activeRide ? { latitude: activeRide.pickup.lat, longitude: activeRide.pickup.lng } : undefined}
         />
         
         {/* Control de disponibilidad overlay */}
-        <div className="availability-overlay">
-          <Card className="availability-card">
-            <CardContent className="availability-content">
-              <div className="availability-control">
+        {!activeRide && ( // Ocultar si hay un viaje activo
+          <div className="availability-overlay">
+            <Card className="availability-card">
+              <CardContent className="availability-content">
+                <div className="availability-control">
                 <div className="availability-info">
                   <span className={`status-indicator ${isAvailable ? 'online' : 'offline'}`}>
                     {isAvailable ? '🟢' : '🔴'}
@@ -264,6 +308,24 @@ const DriverHomePage: React.FC = () => {
           </Card>
         </div>
       </div>
+
+      {/* Guía contextual para el conductor */}
+      {!isAvailable && !activeRide && (
+        <div className="contextual-guide driver-guide">
+          <Card>
+            <CardContent>
+              <p><strong>Guía Rápida para Conductores:</strong></p>
+              <ol>
+                <li>Activa tu disponibilidad cambiando el interruptor a "En línea".</li>
+                <li>Espera a que aparezcan nuevas solicitudes de viaje en la sección "Nuevas solicitudes".</li>
+                <li>Acepta una solicitud para ver los detalles del viaje y la ruta en el mapa.</li>
+                <li>Una vez completado el viaje, márcalo como "Completar Viaje".</li>
+                <li>¡Vuelve a estar disponible para más viajes!</li>
+              </ol>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Estadísticas del día */}
       <div className="stats-section">
@@ -324,8 +386,33 @@ const DriverHomePage: React.FC = () => {
         </Card>
       </div>
 
-      {/* Solicitudes de viaje */}
-      {pendingRequests.length > 0 && (
+      {/* Panel de Viaje Activo */}
+      {activeRide && (
+        <div className="active-ride-panel">
+          <Card>
+            <CardHeader>
+              <CardTitle>Viaje en curso</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="active-ride-info">
+                <p><strong>Pasajero:</strong> {activeRide.passenger.name}</p>
+                <p><strong>Recogida:</strong> {activeRide.pickup.name}</p>
+                <p><strong>Destino:</strong> {activeRide.destination.name}</p>
+                <p><strong>Precio Estimado:</strong> ${activeRide.estimatedPrice}</p>
+              </div>
+              <Button
+                onClick={handleCompleteRide}
+                className="complete-ride-button"
+              >
+                Completar Viaje
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Solicitudes de viaje (ocultar si hay viaje activo) */}
+      {!activeRide && pendingRequests.length > 0 && (
         <div className="requests-section">
           <h3 className="requests-title">
             Nuevas solicitudes ({pendingRequests.length})
@@ -417,8 +504,8 @@ const DriverHomePage: React.FC = () => {
         </div>
       )}
 
-      {/* No hay solicitudes */}
-      {isAvailable && pendingRequests.length === 0 && (
+      {/* No hay solicitudes (ocultar si hay viaje activo) */}
+      {!activeRide && isAvailable && pendingRequests.length === 0 && (
         <div className="no-requests-section">
           <Card>
             <CardContent className="no-requests-content">

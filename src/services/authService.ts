@@ -23,6 +23,7 @@ class AuthService {
   constructor() {
     // Inicializar datos de demostración en localStorage si no existen
     this.initializeDemoData();
+    this.createQuickTestUsers(); // Ensure demo users are available
   }
 
   private initializeDemoData(): void {
@@ -174,34 +175,47 @@ class AuthService {
   createQuickTestUsers(): void {
     const testUsers: User[] = [
       {
-        id: 'test_passenger',
-        name: 'Usuario Pasajero Demo',
-        email: 'pasajero@demo.com',
-        phone: '+54 387 123 4567',
-        rating: 4.8,
-        isDriver: false
+        id: 'demo_passenger_1',
+        name: 'Demo Passenger',
+        email: 'passenger1@demo.com',
+        phone: '+54 9 387 111 2222',
+        rating: 4.7,
+        isDriver: false,
+        profilePicture: 'https://randomuser.me/api/portraits/women/75.jpg'
       },
       {
-        id: 'test_driver',
-        name: 'Usuario Conductor Demo',
-        email: 'conductor@demo.com',
-        phone: '+54 387 765 4321',
+        id: 'demo_driver_1',
+        name: 'Demo Driver',
+        email: 'driver1@demo.com',
+        phone: '+54 9 387 333 4444',
         rating: 4.9,
-        isDriver: true
+        isDriver: true,
+        profilePicture: 'https://randomuser.me/api/portraits/men/75.jpg'
+        // Add any driver-specific fields if needed by other parts of the app,
+        // e.g., carDetails: { model: 'Toyota Corolla', licensePlate: 'AB123CD' }
       }
     ];
 
     const existingUsers = this.getAllUsers();
-    const updatedUsers = [...existingUsers];
+    let usersModified = false;
 
     testUsers.forEach(testUser => {
-      const exists = existingUsers.find(u => u.email === testUser.email);
-      if (!exists) {
-        updatedUsers.push(testUser);
+      const existingIndex = existingUsers.findIndex(u => u.id === testUser.id || u.email === testUser.email);
+      if (existingIndex === -1) {
+        // Add if doesn't exist
+        existingUsers.push(testUser);
+        usersModified = true;
+      } else {
+        // Optionally, update if exists but you want to ensure specific fields are set
+        // For this case, we'll just ensure it exists. If you need to overwrite:
+        // existingUsers[existingIndex] = { ...existingUsers[existingIndex], ...testUser };
+        // usersModified = true;
       }
     });
 
-    this.saveUsers(updatedUsers);
+    if (usersModified) {
+      this.saveUsers(existingUsers);
+    }
   }
 }
 

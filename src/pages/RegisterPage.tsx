@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { registerUser } from '../store/slices/authSlice';
+import { RegisterData } from '../services/authService';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -10,6 +13,7 @@ import '../styles/RegisterPage.css';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState<string>('passenger');
   const [formData, setFormData] = useState({
     firstName: '',
@@ -90,17 +94,39 @@ const RegisterPage: React.FC = () => {
     if (validateForm()) {
       setIsSubmitting(true);
       
-      // Simulamos el registro (en una implementación real, enviaríamos los datos al backend)
-      setTimeout(() => {
-        setIsSubmitting(false);
-        
-        // Redirigir según el tipo de usuario
-        if (activeTab === 'passenger') {
-          navigate(ROUTES.PASSENGER.HOME);
-        } else {
-          navigate(ROUTES.DRIVER.HOME);
-        }
-      }, 1500);
+      const userData: RegisterData = {
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+        isDriver: activeTab === 'driver',
+        // Conditionally add driver-specific fields
+        ...(activeTab === 'driver' && {
+          carModel: formData.carModel,
+          carYear: parseInt(formData.carYear),
+          licensePlate: formData.licensePlate,
+          driverLicense: formData.driverLicense,
+        }),
+      };
+
+      dispatch(registerUser(userData))
+        .unwrap()
+        .then(() => {
+          // Optionally: Display success toast/notification
+          if (activeTab === 'passenger') {
+            navigate(ROUTES.PASSENGER.HOME);
+          } else {
+            navigate(ROUTES.DRIVER.HOME);
+          }
+        })
+        .catch((error: any) => {
+          // Display error toast/notification or set form error
+          // Assuming error is an object with a message property
+          setErrors({ form: error.message || 'Registration failed. Please try again.' });
+        })
+        .finally(() => {
+          setIsSubmitting(false);
+        });
     }
   };
 
@@ -129,6 +155,7 @@ const RegisterPage: React.FC = () => {
           <TabsContent value="passenger">
             <form onSubmit={handleSubmit}>
               <CardContent className="register-form">
+                {errors.form && <div className="form-error-message">{errors.form}</div>}
                 <div className="form-row">
                   <div className="form-field">
                     <Label htmlFor="firstName">Nombre</Label>

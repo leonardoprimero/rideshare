@@ -228,9 +228,14 @@ const MapComponent: React.FC<MapComponentProps> = ({
   const renderError = () => {
     if (!error) return null;
     
+    // Asegurarse de que el mensaje de error sea user-friendly
+    const displayError = typeof error === 'string' && error.toLowerCase().includes('api')
+      ? `Error al cargar el mapa: ${error}`
+      : `Ocurrió un problema con el mapa: ${error}`;
+
     return (
       <div className="map-error">
-        <strong>Error:</strong> {error}
+        <strong>Error:</strong> {displayError}
       </div>
     );
   };
