@@ -1,306 +1,210 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { Ride, Driver, SharedRide, RecurringRide, Location } from '../../types';
-import { rideService } from '../../services/rideService';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { Ride, RouteStatus, Location, User } from '../../types'; // Ride is now FrontendRide
+import { rideService, CreateRoutePayload } from '../../services/rideService'; // rideService is the new one
 
-// Estado inicial para los viajes
+// Define the shape of the ride state
 interface RideState {
-  currentRide: Ride | null;
-  rideHistory: Ride[];
-  nearbyDrivers: Driver[];
-  sharedRides: SharedRide[];
-  recurringRides: RecurringRide[];
-  pendingRides: Ride[];
+  availableRoutes: Ride[];       // For passengers viewing available routes
+  driverRoutes: Ride[];          // For drivers viewing their created routes
+  currentRouteDetails: Ride | null; // For viewing details of a specific route
   isLoading: boolean;
   error: string | null;
+  // Outdated/Mock-based state fields - to be reviewed/removed:
+  // currentRide: Ride | null; // Replaced by currentRouteDetails or managed differently
+  // rideHistory: Ride[]; // Will need a dedicated thunk if using client-side filtering from service or a backend endpoint
+  // nearbyDrivers: Driver[]; // No backend endpoint for this yet
+  // sharedRides: SharedRide[]; // No backend endpoint for this yet
+  // recurringRides: RecurringRide[]; // No backend endpoint for this yet
+  // pendingRides: Ride[]; // No backend endpoint for this concept yet
 }
 
 const initialState: RideState = {
-  currentRide: null,
-  rideHistory: [],
-  nearbyDrivers: [],
-  sharedRides: [],
-  recurringRides: [],
-  pendingRides: [],
+  availableRoutes: [],
+  driverRoutes: [],
+  currentRouteDetails: null,
   isLoading: false,
   error: null,
 };
 
-// Thunks para operaciones asíncronas de viajes
-export const requestRide = createAsyncThunk(
-  'ride/requestRide',
-  async (rideData: {
-    passengerId: string;
-    origin: { address: string; location: Location };
-    destination: { address: string; location: Location };
-    vehicleType?: 'economy' | 'comfort' | 'premium';
-    scheduledFor?: string;
-  }, { rejectWithValue }) => {
-    try {
-      const ride = await rideService.requestRide(rideData);
-      return ride;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Error al solicitar viaje');
-    }
-  }
-);
+// Async Thunks using the new rideService
 
-export const getNearbyDrivers = createAsyncThunk(
-  'ride/getNearbyDrivers',
-  async ({ latitude, longitude }: { latitude: number; longitude: number }, { rejectWithValue }) => {
-    try {
-      const drivers = await rideService.getNearbyDrivers({ latitude, longitude });
-      return drivers;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Error al obtener conductores cercanos');
-    }
-  }
-);
-
-export const acceptRide = createAsyncThunk(
-  'ride/acceptRide',
-  async ({ rideId, driverId }: { rideId: string; driverId: string }, { rejectWithValue }) => {
-    try {
-      const ride = await rideService.acceptRide(rideId, driverId);
-      return ride;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Error al aceptar viaje');
-    }
-  }
-);
-
-export const updateRideStatus = createAsyncThunk(
-  'ride/updateStatus',
-  async ({ rideId, status }: { rideId: string; status: Ride['status'] }, { rejectWithValue }) => {
-    try {
-      const ride = await rideService.updateRideStatus(rideId, status);
-      return ride;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Error al actualizar estado del viaje');
-    }
-  }
-);
-
-export const loadRideHistory = createAsyncThunk(
-  'ride/loadHistory',
-  async (userId: string, { rejectWithValue }) => {
-    try {
-      const history = rideService.getRideHistory(userId);
-      return history;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Error al cargar historial');
-    }
-  }
-);
-
-export const loadSharedRides = createAsyncThunk(
-  'ride/loadSharedRides',
+export const fetchAvailableRoutes = createAsyncThunk<Ride[], void, { rejectValue: string }>(
+  'ride/fetchAvailableRoutes',
   async (_, { rejectWithValue }) => {
     try {
-      const sharedRides = rideService.getSharedRides();
-      return sharedRides;
+      const routes = await rideService.getAvailableRoutes();
+      return routes;
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Error al cargar viajes compartidos');
+      return rejectWithValue(error.response?.data?.message || error.message || 'Failed to fetch available routes');
     }
   }
 );
 
-export const joinSharedRide = createAsyncThunk(
-  'ride/joinSharedRide',
-  async ({ rideId, passengerId }: { rideId: string; passengerId: string }, { rejectWithValue }) => {
+export const fetchRouteDetails = createAsyncThunk<Ride | null, string, { rejectValue: string }>(
+  'ride/fetchRouteDetails',
+  async (routeId, { rejectWithValue }) => {
     try {
-      const ride = await rideService.joinSharedRide(rideId, passengerId);
-      return ride;
+      const route = await rideService.getRouteById(routeId);
+      return route;
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Error al unirse al viaje compartido');
+      return rejectWithValue(error.response?.data?.message || error.message || 'Failed to fetch route details');
     }
   }
 );
 
-export const createRecurringRide = createAsyncThunk(
-  'ride/createRecurringRide',
-  async (rideData: Omit<RecurringRide, 'id'>, { rejectWithValue }) => {
+export const createDriverRoute = createAsyncThunk<Ride, CreateRoutePayload, { rejectValue: string }>(
+  'ride/createDriverRoute',
+  async (routeData, { rejectWithValue }) => {
     try {
-      const ride = await rideService.createRecurringRide(rideData);
-      return ride;
+      const newRoute = await rideService.createDriverRoute(routeData);
+      return newRoute;
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Error al crear viaje recurrente');
+      return rejectWithValue(error.response?.data?.message || error.message || 'Failed to create route');
     }
   }
 );
 
-export const loadDriverRecurringRides = createAsyncThunk(
-  'ride/loadDriverRecurringRides',
-  async (driverId: string, { rejectWithValue }) => {
+export const joinPassengerRoute = createAsyncThunk<Ride, string, { rejectValue: string }>(
+  'ride/joinPassengerRoute',
+  async (routeId, { rejectWithValue }) => {
     try {
-      const rides = rideService.getDriverRecurringRides(driverId);
-      return rides;
+      const updatedRoute = await rideService.joinRoute(routeId);
+      return updatedRoute;
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Error al cargar viajes recurrentes');
+      return rejectWithValue(error.response?.data?.message || error.message || 'Failed to join route');
     }
   }
 );
 
-export const loadPendingRides = createAsyncThunk(
-  'ride/loadPendingRides',
-  async (driverLocation: Location, { rejectWithValue }) => {
+export const fetchDriverCreatedRoutes = createAsyncThunk<Ride[], void, { rejectValue: string }>(
+  'ride/fetchDriverCreatedRoutes',
+  async (_, { rejectWithValue }) => { // Assumes driver ID is handled by backend via auth token
     try {
-      const rides = rideService.getPendingRides(driverLocation);
-      return rides;
+      const routes = await rideService.getDriverCreatedRoutes();
+      return routes;
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Error al cargar viajes pendientes');
+      return rejectWithValue(error.response?.data?.message || error.message || 'Failed to fetch driver routes');
     }
   }
 );
 
-// Slice de viajes
+export const updateDriverRouteStatus = createAsyncThunk<Ride, { routeId: string; status: RouteStatus }, { rejectValue: string }>(
+  'ride/updateDriverRouteStatus',
+  async ({ routeId, status }, { rejectWithValue }) => {
+    try {
+      const updatedRoute = await rideService.updateDriverRouteStatus(routeId, status);
+      return updatedRoute;
+    } catch (error: any) { // Corrected catch block
+      return rejectWithValue(error.response?.data?.message || error.message || 'Failed to update route status');
+    }
+  }
+);
+
 const rideSlice = createSlice({
   name: 'ride',
   initialState,
   reducers: {
-    clearCurrentRide: (state) => {
-      state.currentRide = null;
-    },
-    clearError: (state) => {
+    clearRideError: (state) => {
       state.error = null;
     },
-    setCurrentRide: (state, action) => {
-      state.currentRide = action.payload;
-    },
-    updateDriverLocationLocal: (state, action) => {
-      // Actualizar ubicación de conductores localmente
-      const { driverId, location } = action.payload;
-      state.nearbyDrivers = state.nearbyDrivers.map(driver =>
-        driver.id === driverId ? { ...driver, location } : driver
-      );
-    },
-    updateDriverAvailability: (state, action) => {
-      const { driverId, isAvailable } = action.payload;
-      state.nearbyDrivers = state.nearbyDrivers.map(driver =>
-        driver.id === driverId ? { ...driver, isAvailable } : driver
-      );
+    clearCurrentRouteDetails: (state) => {
+      state.currentRouteDetails = null;
     },
   },
   extraReducers: (builder) => {
-    // Request Ride
-    builder.addCase(requestRide.pending, (state) => {
+    // Fetch Available Routes
+    builder.addCase(fetchAvailableRoutes.pending, (state) => {
       state.isLoading = true;
       state.error = null;
     });
-    builder.addCase(requestRide.fulfilled, (state, action) => {
+    builder.addCase(fetchAvailableRoutes.fulfilled, (state, action: PayloadAction<Ride[]>) => {
       state.isLoading = false;
-      state.currentRide = action.payload;
+      state.availableRoutes = action.payload;
     });
-    builder.addCase(requestRide.rejected, (state, action) => {
+    builder.addCase(fetchAvailableRoutes.rejected, (state, action) => {
       state.isLoading = false;
       state.error = action.payload as string;
     });
 
-    // Get Nearby Drivers
-    builder.addCase(getNearbyDrivers.pending, (state) => {
+    // Fetch Route Details
+    builder.addCase(fetchRouteDetails.pending, (state) => {
       state.isLoading = true;
       state.error = null;
     });
-    builder.addCase(getNearbyDrivers.fulfilled, (state, action) => {
+    builder.addCase(fetchRouteDetails.fulfilled, (state, action: PayloadAction<Ride | null>) => {
       state.isLoading = false;
-      state.nearbyDrivers = action.payload;
+      state.currentRouteDetails = action.payload;
     });
-    builder.addCase(getNearbyDrivers.rejected, (state, action) => {
+    builder.addCase(fetchRouteDetails.rejected, (state, action) => {
       state.isLoading = false;
       state.error = action.payload as string;
     });
 
-    // Accept Ride
-    builder.addCase(acceptRide.pending, (state) => {
+    // Create Driver Route
+    builder.addCase(createDriverRoute.pending, (state) => {
       state.isLoading = true;
       state.error = null;
     });
-    builder.addCase(acceptRide.fulfilled, (state, action) => {
+    builder.addCase(createDriverRoute.fulfilled, (state, action: PayloadAction<Ride>) => {
       state.isLoading = false;
-      state.currentRide = action.payload;
+      state.driverRoutes.unshift(action.payload);
     });
-    builder.addCase(acceptRide.rejected, (state, action) => {
+    builder.addCase(createDriverRoute.rejected, (state, action) => {
       state.isLoading = false;
       state.error = action.payload as string;
     });
 
-    // Update Ride Status
-    builder.addCase(updateRideStatus.pending, (state) => {
+    // Join Passenger Route
+    builder.addCase(joinPassengerRoute.pending, (state) => {
       state.isLoading = true;
       state.error = null;
     });
-    builder.addCase(updateRideStatus.fulfilled, (state, action) => {
+    builder.addCase(joinPassengerRoute.fulfilled, (state, action: PayloadAction<Ride>) => {
       state.isLoading = false;
-      state.currentRide = action.payload;
-      
-      // Si el viaje se completó o canceló, moverlo al historial
-      if (action.payload.status === 'completed' || action.payload.status === 'cancelled') {
-        state.rideHistory = [action.payload, ...state.rideHistory];
-        state.currentRide = null;
+      state.availableRoutes = state.availableRoutes.map(r => r.id === action.payload.id ? action.payload : r);
+      if (state.currentRouteDetails?.id === action.payload.id) {
+        state.currentRouteDetails = action.payload;
       }
     });
-    builder.addCase(updateRideStatus.rejected, (state, action) => {
+    builder.addCase(joinPassengerRoute.rejected, (state, action) => {
       state.isLoading = false;
       state.error = action.payload as string;
     });
 
-    // Load Ride History
-    builder.addCase(loadRideHistory.fulfilled, (state, action) => {
-      state.rideHistory = action.payload;
-    });
-
-    // Load Shared Rides
-    builder.addCase(loadSharedRides.fulfilled, (state, action) => {
-      state.sharedRides = action.payload;
-    });
-
-    // Join Shared Ride
-    builder.addCase(joinSharedRide.pending, (state) => {
+    // Fetch Driver Created Routes
+    builder.addCase(fetchDriverCreatedRoutes.pending, (state) => {
       state.isLoading = true;
       state.error = null;
     });
-    builder.addCase(joinSharedRide.fulfilled, (state, action) => {
+    builder.addCase(fetchDriverCreatedRoutes.fulfilled, (state, action: PayloadAction<Ride[]>) => {
       state.isLoading = false;
-      // Actualizar el viaje compartido en la lista
-      state.sharedRides = state.sharedRides.map(ride =>
-        ride.id === action.payload.id ? action.payload : ride
-      );
+      state.driverRoutes = action.payload;
     });
-    builder.addCase(joinSharedRide.rejected, (state, action) => {
+    builder.addCase(fetchDriverCreatedRoutes.rejected, (state, action) => {
       state.isLoading = false;
       state.error = action.payload as string;
     });
 
-    // Create Recurring Ride
-    builder.addCase(createRecurringRide.pending, (state) => {
+    // Update Driver Route Status
+    builder.addCase(updateDriverRouteStatus.pending, (state) => {
       state.isLoading = true;
       state.error = null;
     });
-    builder.addCase(createRecurringRide.fulfilled, (state, action) => {
+    builder.addCase(updateDriverRouteStatus.fulfilled, (state, action: PayloadAction<Ride>) => {
       state.isLoading = false;
-      state.recurringRides = [action.payload, ...state.recurringRides];
+      state.driverRoutes = state.driverRoutes.map(r => r.id === action.payload.id ? action.payload : r);
+      state.availableRoutes = state.availableRoutes.map(r => r.id === action.payload.id ? action.payload : r)
+                                .filter(r => r.status === 'PENDING');
+      if (state.currentRouteDetails?.id === action.payload.id) {
+        state.currentRouteDetails = action.payload;
+      }
     });
-    builder.addCase(createRecurringRide.rejected, (state, action) => {
+    builder.addCase(updateDriverRouteStatus.rejected, (state, action) => {
       state.isLoading = false;
       state.error = action.payload as string;
-    });
-
-    // Load Driver Recurring Rides
-    builder.addCase(loadDriverRecurringRides.fulfilled, (state, action) => {
-      state.recurringRides = action.payload;
-    });
-
-    // Load Pending Rides
-    builder.addCase(loadPendingRides.fulfilled, (state, action) => {
-      state.pendingRides = action.payload;
     });
   },
 });
 
-export const { 
-  clearCurrentRide, 
-  clearError,
-  setCurrentRide,
-  updateDriverLocationLocal,
-  updateDriverAvailability
-} = rideSlice.actions;
+export const { clearRideError, clearCurrentRouteDetails } = rideSlice.actions;
 export default rideSlice.reducer;

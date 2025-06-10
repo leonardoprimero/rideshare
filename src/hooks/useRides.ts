@@ -1,136 +1,86 @@
-// Hook personalizado para viajes
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
-import { 
-  requestRide,
-  getNearbyDrivers,
-  acceptRide,
-  updateRideStatus,
-  loadRideHistory,
-  loadSharedRides,
-  joinSharedRide,
-  createRecurringRide,
-  loadDriverRecurringRides,
-  loadPendingRides,
-  clearCurrentRide,
-  clearError,
-  setCurrentRide,
-  updateDriverLocationLocal,
-  updateDriverAvailability
+import {
+  // Import the new thunks
+  fetchAvailableRoutes,
+  fetchRouteDetails,
+  createDriverRoute,
+  joinPassengerRoute,
+  fetchDriverCreatedRoutes,
+  updateDriverRouteStatus,
+  // Import relevant actions from reducers if any are kept (e.g., error clearing)
+  clearRideError,
+  clearCurrentRouteDetails,
 } from '../store/slices/rideSlice';
-import { Location, Ride, RecurringRide } from '../types';
+import { Ride, Location, RouteStatus } from '../types'; // Ride is FrontendRide
+import { CreateRoutePayload } from '../services/rideService'; // For createDriverRoute payload
 
 export const useRides = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const rides = useSelector((state: RootState) => state.ride);
+  const rideState = useSelector((state: RootState) => state.ride); // Assuming 'ride' is the name of the slice in the root reducer
 
-  // Acciones para pasajeros
-  const requestNewRide = async (rideData: {
-    passengerId: string;
-    origin: { address: string; location: Location };
-    destination: { address: string; location: Location };
-    vehicleType?: 'economy' | 'comfort' | 'premium';
-    scheduledFor?: string;
-  }) => {
-    return dispatch(requestRide(rideData));
+  // --- Actions that dispatch Thunks ---
+
+  // For Passengers / General Users
+  const getAvailableRoutes = () => {
+    return dispatch(fetchAvailableRoutes());
   };
 
-  const findNearbyDrivers = async (location: Location) => {
-    return dispatch(getNearbyDrivers(location));
+  const getRouteDetails = (routeId: string) => {
+    return dispatch(fetchRouteDetails(routeId));
   };
 
-  const loadMyRideHistory = async (userId: string) => {
-    return dispatch(loadRideHistory(userId));
+  const joinRideAsPassenger = (routeId: string) => {
+    return dispatch(joinPassengerRoute(routeId));
   };
 
-  const loadAvailableSharedRides = async () => {
-    return dispatch(loadSharedRides());
+  // For Drivers
+  const createNewRouteByDriver = (routeData: CreateRoutePayload) => {
+    return dispatch(createDriverRoute(routeData));
   };
 
-  const joinSharedRideAction = async (rideId: string, passengerId: string) => {
-    return dispatch(joinSharedRide({ rideId, passengerId }));
+  const getMyDriverRoutes = () => {
+    // This thunk now correctly gets the driver's ID from the backend session
+    return dispatch(fetchDriverCreatedRoutes());
   };
 
-  // Acciones para conductores
-  const acceptRideRequest = async (rideId: string, driverId: string) => {
-    return dispatch(acceptRide({ rideId, driverId }));
+  const updateRouteStatusByDriver = (routeId: string, status: RouteStatus) => {
+    return dispatch(updateDriverRouteStatus({ routeId, status }));
   };
 
-  const updateCurrentRideStatus = async (rideId: string, status: Ride['status']) => {
-    return dispatch(updateRideStatus({ rideId, status }));
+  // --- Actions that dispatch Synchronous Reducers ---
+  const clearRideSliceError = () => {
+    dispatch(clearRideError());
   };
 
-  const createNewRecurringRide = async (rideData: Omit<RecurringRide, 'id'>) => {
-    return dispatch(createRecurringRide(rideData));
+  const clearDetailsOfCurrentRoute = () => {
+    dispatch(clearCurrentRouteDetails());
   };
 
-  const loadMyRecurringRides = async (driverId: string) => {
-    return dispatch(loadDriverRecurringRides(driverId));
-  };
-
-  const loadPendingRideRequests = async (driverLocation: Location) => {
-    return dispatch(loadPendingRides(driverLocation));
-  };
-
-  // Acciones locales
-  const clearCurrentRideLocal = () => {
-    dispatch(clearCurrentRide());
-  };
-
-  const clearRideError = () => {
-    dispatch(clearError());
-  };
-
-  const setCurrentRideLocal = (ride: Ride | null) => {
-    dispatch(setCurrentRide(ride));
-  };
-
-  const updateDriverLocation = (driverId: string, location: Location) => {
-    dispatch(updateDriverLocationLocal({ driverId, location }));
-  };
-
-  const toggleDriverAvailability = (driverId: string, isAvailable: boolean) => {
-    dispatch(updateDriverAvailability({ driverId, isAvailable }));
-  };
-
+  // --- State Selectors ---
   return {
-    // Estado
-    currentRide: rides.currentRide,
-    rideHistory: rides.rideHistory,
-    nearbyDrivers: rides.nearbyDrivers,
-    sharedRides: rides.sharedRides,
-    recurringRides: rides.recurringRides,
-    pendingRides: rides.pendingRides,
-    isLoading: rides.isLoading,
-    error: rides.error,
+    // State from rideSlice
+    availableRoutes: rideState.availableRoutes,
+    driverRoutes: rideState.driverRoutes,
+    currentRouteDetails: rideState.currentRouteDetails,
+    isLoading: rideState.isLoading,
+    error: rideState.error,
 
-    // Acciones para pasajeros
-    requestNewRide,
-    findNearbyDrivers,
-    loadMyRideHistory,
-    loadAvailableSharedRides,
-    joinSharedRide: joinSharedRideAction,
+    // Thunk-dispatching actions
+    getAvailableRoutes,
+    getRouteDetails,
+    joinRideAsPassenger,
+    createNewRouteByDriver,
+    getMyDriverRoutes,
+    updateRouteStatusByDriver,
 
-    // Acciones para conductores
-    acceptRideRequest,
-    updateCurrentRideStatus,
-    createNewRecurringRide,
-    loadMyRecurringRides,
-    loadPendingRideRequests,
+    // Synchronous actions
+    clearRideError: clearRideSliceError, // Renamed to avoid conflict if imported directly
+    clearCurrentRouteDetails: clearDetailsOfCurrentRoute,
 
-    // Acciones locales
-    clearCurrentRide: clearCurrentRideLocal,
-    clearError: clearRideError,
-    setCurrentRide: setCurrentRideLocal,
-    updateDriverLocation,
-    toggleDriverAvailability,
-
-    // Helpers
-    hasActiveRide: !!rides.currentRide,
-    hasRideHistory: rides.rideHistory.length > 0,
-    hasNearbyDrivers: rides.nearbyDrivers.length > 0,
-    hasSharedRides: rides.sharedRides.length > 0,
-    hasPendingRides: rides.pendingRides.length > 0,
+    // Derived/Helper states (optional, can also be computed in components)
+    hasAvailableRoutes: rideState.availableRoutes.length > 0,
+    // Add more helpers as needed
   };
 };
 

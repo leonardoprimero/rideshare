@@ -1,11 +1,11 @@
-import React, { useEffect } from 'react'; // Added useEffect
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store';
+import { useAuth } from './hooks/useAuth';
 import { ROUTES } from './constants';
-import { useAuth } from './hooks/useAuth'; // Added
 
-// Importación de páginas
+// Page imports from original App.tsx
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -21,42 +21,49 @@ import StatsPage from './pages/StatsPage';
 
 import './App.css';
 
-function App() {
-  const { initializeAuth } = useAuth(); // Added
+// Componente interno para usar el hook useAuth dentro del Provider
+const AppContent: React.FC = () => {
+  const { initializeAuth } = useAuth();
 
-  useEffect(() => { // Added
+  useEffect(() => {
     initializeAuth();
-  }, [initializeAuth]);
+  }, [initializeAuth]); // initializeAuth es estable, pero es buena práctica incluirla
 
+  return (
+    <div className="app-container">
+      <Routes>
+        {/* Rutas públicas */}
+        <Route path={ROUTES.HOME} element={<HomePage />} />
+        <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+        <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
+        <Route path={ROUTES.STATS} element={<StatsPage />} />
+
+        {/* Rutas de pasajero (Ejemplos, ajusta según tus ROUTES) */}
+        <Route path={ROUTES.PASSENGER.HOME} element={<PassengerHomePage />} />
+        <Route path={ROUTES.PASSENGER.SEARCH_DESTINATION} element={<SearchDestinationPage />} />
+        <Route path={ROUTES.PASSENGER.RIDE_REQUEST} element={<RideRequestPage />} />
+        <Route path={ROUTES.PASSENGER.RIDE_TRACKING} element={<RideTrackingPage />} />
+        <Route path={ROUTES.PASSENGER.SHARED_RIDES} element={<SharedRidesPage />} />
+
+        {/* Rutas de conductor (Ejemplos) */}
+        <Route path={ROUTES.DRIVER.HOME} element={<DriverHomePage />} />
+        <Route path={ROUTES.DRIVER.RECURRING_RIDES} element={<DriverRecurringRidesPage />} />
+
+        {/* Rutas comunes */}
+        <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
+
+        {/* Redirección por defecto */}
+        <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
+      </Routes>
+    </div>
+  );
+};
+
+function App() {
   return (
     <Provider store={store}>
       <Router>
-        <div className="app-container">
-          <Routes>
-            {/* Rutas públicas */}
-            <Route path={ROUTES.HOME} element={<HomePage />} />
-            <Route path={ROUTES.LOGIN} element={<LoginPage />} />
-            <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
-            <Route path={ROUTES.STATS} element={<StatsPage />} />
-            
-            {/* Rutas de pasajero */}
-            <Route path={ROUTES.PASSENGER.HOME} element={<PassengerHomePage />} />
-            <Route path={ROUTES.PASSENGER.SEARCH_DESTINATION} element={<SearchDestinationPage />} />
-            <Route path={ROUTES.PASSENGER.RIDE_REQUEST} element={<RideRequestPage />} />
-            <Route path={ROUTES.PASSENGER.RIDE_TRACKING} element={<RideTrackingPage />} />
-            <Route path={ROUTES.PASSENGER.SHARED_RIDES} element={<SharedRidesPage />} />
-            
-            {/* Rutas de conductor */}
-            <Route path={ROUTES.DRIVER.HOME} element={<DriverHomePage />} />
-            <Route path={ROUTES.DRIVER.RECURRING_RIDES} element={<DriverRecurringRidesPage />} />
-            
-            {/* Rutas comunes */}
-            <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
-            
-            {/* Redirección por defecto */}
-            <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
-          </Routes>
-        </div>
+        <AppContent />
       </Router>
     </Provider>
   );

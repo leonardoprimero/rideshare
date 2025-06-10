@@ -2,15 +2,15 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
-import { store } from './store';
-import { initializeAuth } from './store/slices/authSlice';
+import { store } from './store'; // Keeping for initializeDemoData (or if Provider was here)
+// import { initializeAuth } from './store/slices/authSlice'; // Removed
 import { initializeDemoData } from './utils/initDemo';
 
-// Inicializar estado de autenticación
-store.dispatch(initializeAuth());
+// Inicializar estado de autenticación - This is now handled in App.tsx
+// store.dispatch(initializeAuth()); // Removed
 
 // Inicializar datos de demostración
-initializeDemoData();
+initializeDemoData(); // This might dispatch actions, so store import could be needed.
 
 const container = document.getElementById('root');
 const root = createRoot(container!);
