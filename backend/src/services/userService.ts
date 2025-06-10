@@ -1,14 +1,25 @@
-import { PrismaClient, User } from '@prisma/client';
+import { PrismaClient, User, Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-export const createUser = async (data: Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'role'> & { role?: any }): Promise<User> => {
+// Define UserPublicProfile type by omitting 'password' from the Prisma User type
+export type UserPublicProfile = Omit<User, 'password'>;
+
+// Interface for data needed to create a user.
+interface UserCreationDataInput extends Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'routesAsDriver' | 'routesAsPassenger' | 'payments'> {
+  // This type expects 'email', 'password', 'name' (optional), 'role' (optional)
+  // Note: 'password' here is the plaintext password for hashing.
+}
+
+export const createUser = async (data: UserCreationDataInput): Promise<User> => {
   const hashedPassword = await bcrypt.hash(data.password, 10);
   return prisma.user.create({
     data: {
-      ...data,
-      password: hashedPassword,
+      email: data.email,
+      password: hashedPassword, // Storing the hashed password
+      name: data.name,
+      role: data.role || Role.PASSENGER, // Default role if not provided
     },
   });
 };
@@ -19,62 +30,60 @@ export const findUserByEmail = async (email: string): Promise<User | null> => {
   });
 };
 
-export const verifyPassword = async (password: string, hash: string): Promise<boolean> => {
-  return bcrypt.compare(password, hash);
-};
-
-export const findUserById = async (id: string): Promise<User | null> => {
+export const findUserById = async (id: string): Promise<UserPublicProfile | null> => {
   return prisma.user.findUnique({
     where: { id },
-    select: { // Explicitly select fields to avoid exposing password
-      id: true,
-      email: true,
-      name: true,
-      role: true,
-      createdAt: true,
-      updatedAt: true
-    }
-  });
-};
-
-interface UserProfileUpdateData {
-  name?: string;
-  // Add other updatable fields here, e.g., phoneNumber, profilePictureUrl
-  // Explicitly EXCLUDE email, password, role from this interface for profile updates
-}
-
-export const updateUserProfile = async (userId: string, data: UserProfileUpdateData): Promise<User | null> => {
-  // Ensure no forbidden fields are attempted to be updated through this specific function
-  const { name, ...otherData } = data;
-  if (Object.keys(otherData).length > 0) {
-      // This check is an additional safeguard. The controller should also filter.
-      console.warn(`Attempt to update restricted fields in updateUserProfile for user ${userId}: ${Object.keys(otherData).join(", ")}`);
-      // Depending on strictness, could throw an error here.
-  }
-
-  const allowedDataToUpdate: UserProfileUpdateData = {};
-  if (typeof name === 'string') {
-    allowedDataToUpdate.name = name;
-  }
-
-
-  if (Object.keys(allowedDataToUpdate).length === 0) {
-    // This case should ideally be caught by the controller
-    // but as a safeguard in service layer:
-    const currentUser = await prisma.user.findUnique({ where: { id: userId } });
-    return currentUser; // Return current user if no valid data to update
-  }
-
-  return prisma.user.update({
-    where: { id: userId },
-    data: allowedDataToUpdate,
-    select: { // Return only safe fields
+    select: {
       id: true,
       email: true,
       name: true,
       role: true,
       createdAt: true,
       updatedAt: true,
+      // Explicitly list other fields of User model if they were added and should be public
+      // e.g. phone: true, if phone was added to User model and UserPublicProfile
+    },
+  });
+};
+
+export const verifyPassword = async (password: string, hash: string): Promise<boolean> => {
+  return bcrypt.compare(password, hash);
+};
+
+interface UserProfileUpdateData {
+  name?: string;
+  // e.g. phone?: string;
+}
+
+export const updateUserProfile = async (userId: string, data: UserProfileUpdateData): Promise<UserPublicProfile | null> => {
+  const allowedDataToUpdate: Partial<User> = {};
+  if (typeof data.name === 'string') {
+    allowedDataToUpdate.name = data.name;
+  }
+  // if (typeof data.phone === 'string') allowedDataToUpdate.phone = data.phone;
+
+  if (Object.keys(allowedDataToUpdate).length === 0) {
+    const currentUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            id: true, email: true, name: true, role: true, createdAt: true, updatedAt: true
+            // e.g. phone: true,
+        }
+    });
+    return currentUser; // This will be UserPublicProfile | null
+  }
+
+  return prisma.user.update({
+    where: { id: userId },
+    data: allowedDataToUpdate,
+    select: { // This select now exactly matches the fields of UserPublicProfile (base User minus password)
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      createdAt: true,
+      updatedAt: true,
+      // e.g. phone: true,
     },
   });
 };
