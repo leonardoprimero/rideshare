@@ -5,11 +5,11 @@ import { rideService } from '../services/rideService';
 export const initializeDemoData = () => {
   try {
     // Crear usuarios de prueba rápida si no existen
-    authService.createQuickTestUsers();
+    // authService.createQuickTestUsers();
     
     // Generar algunos viajes de demostración para usuarios de prueba
     const testPassengerId = 'test_passenger';
-    rideService.generateDemoRides(testPassengerId, 3);
+    // rideService.generateDemoRides(testPassengerId, 3);
     
     console.log('✅ Datos de demostración inicializados correctamente');
     

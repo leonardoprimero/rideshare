@@ -10,7 +10,10 @@ const app = express();
 const port = process.env.PORT || 3001; // Default to 3001 if PORT not set
 
 app.use(cors({
-  origin: "http://localhost:5173", // Assuming frontend runs on 5173
+  origin: [
+    "http://localhost:5173",
+    "https://5173-firebase-shareride-proyecto-completo-1749079509796.cluster-m7tpz3bmgjgoqrktlvd4ykrc2m.cloudworkstations.dev"
+  ],
   credentials: true,
 }));
 app.use(express.json());
