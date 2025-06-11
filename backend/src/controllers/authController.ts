@@ -46,8 +46,9 @@ export const login = async (req: AuthenticatedRequest, res: Response): Promise<v
     const token = jwt.sign({ userId: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: true, // Forzar true, asumiendo HTTPS en Cloud Workstations
+      sameSite: 'None', // Necesario para cross-domain cookies con credentials
+      path: '/',      // Asegurar disponibilidad en todas las rutas del API
       maxAge: 3600000,
     });
     res.status(200).json({
